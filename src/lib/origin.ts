@@ -2,9 +2,10 @@ export function allowedOrigin(
   origin: string | null,
   expected: string,
   development: boolean,
+  additionalOrigins: readonly string[] = [],
 ): boolean {
   if (!origin) return false;
-  if (origin === expected) return true;
+  if (origin === expected || additionalOrigins.includes(origin)) return true;
   if (!development) return false;
   try {
     const source = new URL(origin);

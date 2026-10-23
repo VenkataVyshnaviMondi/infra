@@ -87,6 +87,14 @@ export async function clearSession() {
 export function checkOrigin(request: Request) {
   const origin = request.headers.get("origin");
   const expected = new URL(process.env.APP_URL || request.url).origin;
-  if (!allowedOrigin(origin, expected, process.env.NODE_ENV === "development"))
+  // Trust only configured aliases and Vercel's own deployment metadata.
+  // Never derive this allowlist from request Host or forwarded headers.
+  const aliases = [
+    ...(process.env.APP_ORIGINS || "").split(",").map((value) => value.trim()).filter(Boolean),
+    ...[process.env.VERCEL_URL, process.env.VERCEL_PROJECT_PRODUCTION_URL]
+      .filter((value): value is string => Boolean(value))
+      .map((value) => `https://${value}`),
+  ];
+  if (!allowedOrigin(origin, expected, process.env.NODE_ENV === "development", aliases))
     throw new AppError("Request origin is not allowed.", 403);
 }
