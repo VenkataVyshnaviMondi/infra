@@ -1,0 +1,364 @@
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider = "postgresql"
+  url = env("DATABASE_URL")
+}
+enum Role {
+  ADMIN
+  EMPLOYEE
+}
+enum Availability {
+  AVAILABLE
+  BOOKED
+  ADVANCE_PAID
+  SOLD
+  RENTED
+  LEASED
+  ARCHIVED
+}
+enum Stage {
+  NEW
+  CONTACTED
+  VISIT_SCHEDULED
+  VISITED
+  NEGOTIATION
+  BOOKED
+  ADVANCE_PAID
+  CONVERTED
+  LOST
+}
+enum Interest {
+  UNDECIDED
+  INTERESTED
+  NOT_INTERESTED
+}
+enum InteractionType {
+  ENQUIRY
+  PROPERTY_VIEWING
+  FOLLOW_UP
+  OTHER
+}
+model User {
+  id String @id @default(cuid())
+  name String
+  phone String
+  username String @unique
+  passwordHash String
+  role Role @default(EMPLOYEE)
+  active Boolean @default(true)
+  mustChangePassword Boolean @default(true)
+  createdAt DateTime @default(now())
+  sessions Session[]
+  listings Listing[]
+  customers Customer[]
+  interactions Interaction[]
+  leads Lead[]
+  followUps FollowUp[]
+  completions Completion[]
+}
+model Session {
+  id String @id
+  userId String
+  user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  @@index([userId])
+}
+model LoginAttempt {
+  key String @id
+  count Int @default(0)
+  resetAt DateTime
+}
+model Category {
+  id String @id
+  name String @unique
+  options CategoryOption[]
+  listings Listing[]
+}
+model CategoryOption {
+  id String @id
+  name String
+  transactionType String
+  furnitureSubtype String?
+  categoryId String
+  category Category @relation(fields:[categoryId],references:[id])
+  listings Listing[]
+  @@unique([categoryId,name])
+}
+model Listing {
+  id String @id @default(cuid())
+  title String
+  categoryId String
+  category Category @relation(fields:[categoryId],references:[id])
+  optionId String
+  option CategoryOption @relation(fields:[optionId],references:[id])
+  price Decimal @db.Decimal(14,2)
+  negotiable Boolean @default(false)
+  state String
+  city String
+  locality String
+  address String
+  pinCode String?
+  description String
+  listedBy String?
+  creatorId String
+  creator User @relation(fields:[creatorId],references:[id])
+  status Availability @default(AVAILABLE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  property PropertyDetail?
+  furniture FurnitureDetail?
+  photos Photo[]
+  interactions Interaction[]
+  leads Lead[]
+  bookings Booking[]
+  advances Advance[]
+  completions Completion[]
+  statusHistory ListingStatusHistory[]
+  preferredByCustomers Customer[] @relation("CustomerPreferredListing")
+  customerViews CustomerPropertyView[]
+  @@index([categoryId,status,createdAt])
+  @@index([creatorId])
+  @@index([city,locality])
+}
+model PropertyDetail {
+  listingId String @id
+  listing Listing @relation(fields:[listingId],references:[id],onDelete:Cascade)
+  type String
+  bhk Int?
+  bathrooms Int?
+  superArea Decimal? @db.Decimal(12,2)
+  carpetArea Decimal? @db.Decimal(12,2)
+  furnishing String?
+  facing String
+  parking Int?
+  maintenance Decimal? @db.Decimal(12,2)
+  totalFloors Int?
+  floorNo Int?
+  projectName String?
+  availabilityDate DateTime?
+  deposit Decimal? @db.Decimal(14,2)
+  tenantType String?
+  constructionStatus String?
+  propertyAge Int?
+  plotArea Decimal? @db.Decimal(12,2)
+  length Decimal? @db.Decimal(12,2)
+  breadth Decimal? @db.Decimal(12,2)
+  roadWidth Decimal? @db.Decimal(12,2)
+  billingPeriod String?
+  leaseDuration String?
+}
+model FurnitureDetail {
+  listingId String @id
+  listing Listing @relation(fields:[listingId],references:[id],onDelete:Cascade)
+  brand String?
+  material String
+  condition String
+  age Int?
+  dimensions String?
+  color String?
+  quantity Int
+}
+model Photo {
+  id String @id @default(cuid())
+  key String @unique
+  ownerId String
+  listingId String?
+  listing Listing? @relation(fields:[listingId],references:[id],onDelete:Cascade)
+  position Int @default(0)
+  createdAt DateTime @default(now())
+  @@index([listingId,position])
+  @@index([ownerId])
+}
+model Customer {
+  id String @id @default(cuid())
+  name String
+  phone String @unique
+  alternatePhone String?
+  email String?
+  source String
+  preferredListingId String?
+  preferredListing Listing? @relation("CustomerPreferredListing",fields:[preferredListingId],references:[id],onDelete:SetNull)
+  propertyViews CustomerPropertyView[]
+  age Int?
+  contactDetails String?
+  contactType String @default("ENQUIRY")
+  contactDate DateTime?
+  notes String @default("")
+  assignedToId String
+  assignedTo User @relation(fields:[assignedToId],references:[id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  requirements Requirement[]
+  assignments CustomerAssignment[]
+  interactions Interaction[]
+  leads Lead[]
+  followUps FollowUp[]
+  bookings Booking[]
+  advances Advance[]
+  completions Completion[]
+  @@index([assignedToId,createdAt])
+  @@index([preferredListingId])
+}
+model CustomerPropertyView {
+  customerId String
+  listingId String
+  customer Customer @relation(fields:[customerId],references:[id],onDelete:Cascade)
+  listing Listing @relation(fields:[listingId],references:[id],onDelete:Cascade)
+  createdAt DateTime @default(now())
+  @@id([customerId,listingId])
+  @@index([listingId])
+}
+model Requirement {
+  id String @id @default(cuid())
+  customerId String
+  customer Customer @relation(fields:[customerId],references:[id],onDelete:Cascade)
+  categoryId String
+  optionId String?
+  budgetMin Decimal? @db.Decimal(14,2)
+  budgetMax Decimal? @db.Decimal(14,2)
+  locations String @default("")
+  createdAt DateTime @default(now())
+  @@index([customerId])
+}
+model CustomerAssignment {
+  id String @id @default(cuid())
+  customerId String
+  customer Customer @relation(fields:[customerId],references:[id])
+  fromUserId String?
+  toUserId String
+  actorId String
+  createdAt DateTime @default(now())
+  @@index([customerId,createdAt])
+}
+model Interaction {
+  id String @id @default(cuid())
+  requestKey String @unique
+  customerId String
+  customer Customer @relation(fields:[customerId],references:[id])
+  listingId String
+  listing Listing @relation(fields:[listingId],references:[id])
+  employeeId String
+  employee User @relation(fields:[employeeId],references:[id])
+  type InteractionType
+  interest Interest
+  occurredAt DateTime
+  offer Decimal? @db.Decimal(14,2)
+  rejectionReason String?
+  notes String @default("")
+  createdAt DateTime @default(now())
+  @@index([listingId,type])
+  @@index([employeeId,occurredAt])
+  @@index([customerId,occurredAt])
+}
+model Lead {
+  id String @id @default(cuid())
+  customerId String
+  customer Customer @relation(fields:[customerId],references:[id])
+  listingId String
+  listing Listing @relation(fields:[listingId],references:[id])
+  generatedById String
+  generatedBy User @relation(fields:[generatedById],references:[id])
+  stage Stage @default(NEW)
+  lostReason String?
+  needsAttention Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  history LeadStageHistory[]
+  @@unique([customerId,listingId])
+  @@index([generatedById,createdAt])
+}
+model LeadStageHistory {
+  id String @id @default(cuid())
+  leadId String
+  lead Lead @relation(fields:[leadId],references:[id])
+  fromStage Stage?
+  toStage Stage
+  actorId String
+  reason String?
+  createdAt DateTime @default(now())
+  @@index([leadId,createdAt])
+}
+model FollowUp {
+  id String @id @default(cuid())
+  customerId String
+  customer Customer @relation(fields:[customerId],references:[id])
+  employeeId String
+  employee User @relation(fields:[employeeId],references:[id])
+  listingId String?
+  dueAt DateTime
+  notes String
+  doneAt DateTime?
+  createdAt DateTime @default(now())
+  @@index([employeeId,dueAt,doneAt])
+}
+model Booking {
+  id String @id @default(cuid())
+  listingId String
+  listing Listing @relation(fields:[listingId],references:[id])
+  customerId String
+  customer Customer @relation(fields:[customerId],references:[id])
+  actorId String
+  active Boolean @default(true)
+  cancelledAt DateTime?
+  cancellationReason String?
+  notes String @default("")
+  createdAt DateTime @default(now())
+  @@index([listingId,active])
+}
+model Advance {
+  id String @id @default(cuid())
+  requestKey String @unique
+  listingId String
+  listing Listing @relation(fields:[listingId],references:[id])
+  customerId String
+  customer Customer @relation(fields:[customerId],references:[id])
+  actorId String
+  amount Decimal @db.Decimal(14,2)
+  paymentDate DateTime
+  method String
+  reference String?
+  notes String?
+  createdAt DateTime @default(now())
+  @@index([listingId,createdAt])
+}
+model Completion {
+  id String @id @default(cuid())
+  listingId String
+  listing Listing @relation(fields:[listingId],references:[id])
+  customerId String
+  customer Customer @relation(fields:[customerId],references:[id])
+  employeeId String
+  employee User @relation(fields:[employeeId],references:[id])
+  leadId String
+  actorId String
+  amount Decimal @db.Decimal(14,2)
+  status Availability
+  reversedAt DateTime?
+  reversalReason String?
+  createdAt DateTime @default(now())
+  @@index([employeeId,createdAt])
+  @@index([listingId,reversedAt])
+}
+model ListingStatusHistory {
+  id String @id @default(cuid())
+  listingId String
+  listing Listing @relation(fields:[listingId],references:[id])
+  fromStatus Availability?
+  toStatus Availability
+  actorId String
+  reason String?
+  createdAt DateTime @default(now())
+  @@index([listingId,createdAt])
+}
+model AuditLog {
+  id String @id @default(cuid())
+  actorId String
+  action String
+  entityId String
+  detail String?
+  createdAt DateTime @default(now())
+  @@index([entityId,createdAt])
+}

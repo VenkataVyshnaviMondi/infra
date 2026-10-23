@@ -1,0 +1,12 @@
+node_modules/
+.next/
+.next-e2e/
+.next-payment-check/
+.env
+.env.*
+!.env.example
+.local/
+storage/
+test-results/
+playwright-report/
+*.tsbuildinfo

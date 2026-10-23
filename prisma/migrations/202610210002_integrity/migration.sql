@@ -1,0 +1,21 @@
+-- Only one booking and one unreversed completion may exist for a listing.
+CREATE UNIQUE INDEX "Booking_one_active_per_listing" ON "Booking" ("listingId") WHERE "active" = true;
+CREATE UNIQUE INDEX "Completion_one_current_per_listing" ON "Completion" ("listingId") WHERE "reversedAt" IS NULL;
+ALTER TABLE "Listing" ADD CONSTRAINT "Listing_positive_price" CHECK (price > 0);
+ALTER TABLE "Advance" ADD CONSTRAINT "Advance_positive_amount" CHECK (amount > 0);
+ALTER TABLE "Completion" ADD CONSTRAINT "Completion_positive_amount" CHECK (amount > 0);
+ALTER TABLE "FurnitureDetail" ADD CONSTRAINT "Furniture_positive_quantity" CHECK (quantity > 0);
+ALTER TABLE "PropertyDetail" ADD CONSTRAINT "Property_valid_areas" CHECK ("carpetArea" IS NULL OR "superArea" IS NULL OR "carpetArea" <= "superArea");
+ALTER TABLE "Requirement" ADD CONSTRAINT "Requirement_valid_budget" CHECK ("budgetMin" IS NULL OR "budgetMax" IS NULL OR "budgetMin" <= "budgetMax");
+ALTER TABLE "Requirement" ADD CONSTRAINT "Requirement_category_fkey" FOREIGN KEY ("categoryId") REFERENCES "Category"(id);
+ALTER TABLE "Requirement" ADD CONSTRAINT "Requirement_option_fkey" FOREIGN KEY ("optionId") REFERENCES "CategoryOption"(id);
+ALTER TABLE "Photo" ADD CONSTRAINT "Photo_owner_fkey" FOREIGN KEY ("ownerId") REFERENCES "User"(id);
+ALTER TABLE "CustomerAssignment" ADD CONSTRAINT "Assignment_to_user_fkey" FOREIGN KEY ("toUserId") REFERENCES "User"(id);
+ALTER TABLE "CustomerAssignment" ADD CONSTRAINT "Assignment_from_user_fkey" FOREIGN KEY ("fromUserId") REFERENCES "User"(id);
+ALTER TABLE "Booking" ADD CONSTRAINT "Booking_actor_fkey" FOREIGN KEY ("actorId") REFERENCES "User"(id);
+ALTER TABLE "Advance" ADD CONSTRAINT "Advance_actor_fkey" FOREIGN KEY ("actorId") REFERENCES "User"(id);
+ALTER TABLE "Completion" ADD CONSTRAINT "Completion_actor_fkey" FOREIGN KEY ("actorId") REFERENCES "User"(id);
+ALTER TABLE "Completion" ADD CONSTRAINT "Completion_lead_fkey" FOREIGN KEY ("leadId") REFERENCES "Lead"(id);
+ALTER TABLE "FollowUp" ADD CONSTRAINT "FollowUp_listing_fkey" FOREIGN KEY ("listingId") REFERENCES "Listing"(id);
+ALTER TABLE "ListingStatusHistory" ADD CONSTRAINT "ListingStatus_actor_fkey" FOREIGN KEY ("actorId") REFERENCES "User"(id);
+ALTER TABLE "LeadStageHistory" ADD CONSTRAINT "LeadStage_actor_fkey" FOREIGN KEY ("actorId") REFERENCES "User"(id);
